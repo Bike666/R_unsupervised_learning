@@ -1,0 +1,138 @@
+---
+title: "Association rules of market transactions"
+output: html_document
+date: "2023-01-23"
+---
+
+## Introduction
+
+### Association Rules is a very useful unsupervised learning method. The original motivation of association rules is to analyze the shopping basket, that is, the store wants to know whether there is any connection between the products purchased by customers.
+
+## Data preparation 
+
+### The data is downloaded from the website https://www.kaggle.com/datasets/d4rklucif3r/market-basket-optimisation. This file contains some data of a supermarket customer purchasing goods.
+
+```{r setup, warning=FALSE}
+library(arules)
+library(arulesViz)
+markert<-read.transactions("E:\\AAA Warsaw University\\The 1st semester\\Unsupervised Learning\\1Association\\Market_Basket_Optimisation.csv", format="basket", sep=",")
+```
+
+### General information about the data.
+
+```{r}
+summary(markert)
+
+```
+
+```{r}
+LIST(head(markert))
+```
+
+### How often each item appears
+
+```{r}
+itemFrequencyPlot(markert, topN=25, type="relative", main="Items Frequency",col='#66d4b5') 
+```
+
+### The simple information obtained through the above charts has 7501 transactions and 119 items, among which mineral water appears most frequently. So are most of the commodities related to mineral water?
+
+## Apriori algorithm
+
+#### Support: support(A=>B) = P(A∪B), indicating the probability that A and B appear at the same time.
+
+#### Confidence: confidence(A=>B)=support(A∪B) / support(A), indicating the ratio of the probability of A and B appearing at the same time to the probability of A appearing.
+
+#### Lift: the degree to which the appearance of product A increases the probability of product B. Lift (A->B) = Confidence (A->B)/Support (B). When the lift is greater than 1 , it is recommended, if it is less than 1, it is not recommended.
+
+
+#### First set Support to 0.05 and Confidence to 0.42.
+
+```{r}
+rules<-apriori(markert, parameter=list(supp=0.05, conf=0.42,minlen=2)) 
+```
+#### Because the conditions are relatively strict, we can see that there is no rule that meets such conditions.
+#### We changed Support to 0.01 but Confidence to 0.42 as before.
+
+```{r}
+rules<-apriori(markert, parameter=list(supp=0.01, conf=0.42,minlen=2))
+```
+#### There are now 12 rules that meet Support to 0.01 and Confidence to 0.42.
+
+## Visual Interaction Diagram
+
+```{r}
+rules_support = sort(rules,by = 'support')[1:12]
+plot(rules_support,method = 'graph',engine = 'htmlwidget')
+```
+
+
+```{r}
+rules_confidence = sort(rules,by = 'confidence')[1:12]
+plot(rules_confidence,method = 'graph',engine = 'htmlwidget')
+```
+
+
+```{r}
+rules_lift = sort(rules,by = 'lift')[1:12]
+plot(rules_lift,method = 'graph',engine = 'htmlwidget')
+```
+
+### From 3 above graphs we can see that each rule corresponds to the corresponding support, confidence and lift of the product.
+
+### Sort by support, confidence, lift. 
+
+```{r}
+rulesBYsupp<-sort(rules, by="support", decreasing=TRUE) 
+inspect(head(rulesBYsupp,12))
+
+```
+#### Soup, ground beef, spaghetti these products support mineral water the most.
+
+```{r}
+rulesBYconf<-sort(rules, by="confidence", decreasing=TRUE) 
+inspect(head(rulesBYconf,12))
+```
+
+#### Products such as eggs, ground beef, and milk have the highest confidence for mineral water.
+
+```{r}
+rulesBYlift<-sort(rules, by="lift", decreasing=TRUE) 
+inspect(head(rulesBYlift,12))
+```
+
+#### Products such as eggs, ground beef, and milk have the highest lift for mineral water.
+
+
+```{r}
+plot_rules <- plot(rules, measure=c("support","lift"), shading="confidence", main="Transactions Rules")
+plot_rules
+```
+
+```{r}
+plot(rules, method="graph", measure="support", shading="lift")
+```
+
+```{r}
+plot(rules, method="paracoord", control=list(reorder=TRUE))
+```
+
+#### Spaghetti, milk, ground beef have a strong correlation with mineral water.
+
+## Another example
+
+#### We want to know what are the products related to the soup when the support is 0.01 and the confidence is 0.01.
+```{r}
+rules_soup<-apriori(data=markert, parameter=list(supp=0.01,conf = 0.01), 
+                      appearance=list(default="lhs", rhs="soup"))
+```
+```{r}
+plot(rules_soup, method="paracoord", control=list(reorder=TRUE))
+```
+
+#### We can see that milk, mineral water, pasta have a strong association with soup.
+
+## Conclusion
+
+### In order to assist customers improve their shopping lists, association rules might be used in the world of retail. In order to advise customers to combine purchasing and selling of things under specific conditions, it is feasible to identify which items are connected together by evaluating the user's prior shopping data. Association rules also have a significant impact in other sectors. For instance, association rules can be used in the area of health to assist individuals in forming appropriate lifestyle choices. In summary, association rules are employed often in daily life and might aid in improved understanding, therefore they can become more significant in the future.
+
