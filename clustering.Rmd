@@ -1,0 +1,154 @@
+---
+title: "Chinese traditional painting clustering"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+
+## Introduction
+### Traditional Chinese painting has three characteristics: the pursuit of resemblance, focus on artistic conception; ink line as the main modeling means. The use of ink and lines creates the unique charm of Chinese painting and the different styles of each painter. This cluster analysis is based on the first "露畹新丛" and the third "空谷幽芬" in Minning's "Ganoderma lucidum orchids" to analyze the ink usage of these two paintings.
+https://www.dpm.org.cn/collection/paint/257924.html
+
+### "露畹新丛": Fresh grass in the garden
+### "空谷幽芬": Fragrance in the empty valley
+
+
+## Preparing data
+
+
+```{r}
+library(jpeg)
+image1 <- readJPEG("露畹新丛.jpg")
+image2 <- readJPEG("空谷幽芬.jpg")
+class(image1)
+class(image2)
+dm1 <- dim(image1);dm1[1:2]
+dm2 <-  dim(image2);dm2[1:2]
+```
+
+### The sizes of the two pictures are 500X596 and 500X597 respectively. Use plot to display these two pictures
+
+
+
+```{r}
+rgbImage1 <- data.frame(
+  x=rep(1:dm1[2], each=dm1[1]),
+  y=rep(dm1[1]:1, dm1[2]),
+  r.value=as.vector(image1[,,1]),
+  g.value=as.vector(image1[,,2]),
+  b.value=as.vector(image1[,,3]))
+tail(rgbImage1)
+
+rgbImage2 <- data.frame(
+  x=rep(1:dm2[2], each=dm2[1]),
+  y=rep(dm2[1]:1, dm2[2]),
+  r.value=as.vector(image2[,,1]),
+  g.value=as.vector(image2[,,2]),
+  b.value=as.vector(image2[,,3]))
+tail(rgbImage2)
+
+plot(y ~ x, data=rgbImage1, main="露畹新丛(Fresh grass in the garden)",
+     col = rgb(rgbImage1[c("r.value", "g.value", "b.value")]),
+     asp = 1, pch = ".")
+
+plot(y ~ x, data=rgbImage2, main="空谷幽芬(Fragrance in the empty valley)",
+     col = rgb(rgbImage2[c("r.value", "g.value", "b.value")]),
+     asp = 1, pch = ".")
+```
+
+
+## Clustering
+### Because the data of the two graphs is relatively large, one has 298,000 rows and the other has 298,500 rows, so here clara clustering will be used, and the appropriate number of k clusters must be found first
+
+```{r}
+library(cluster)
+
+cluster1 <- c()
+for (n in 1:10) {
+  cl <- clara(rgbImage1[, c("r.value", "g.value", "b.value")], n)
+  cluster1 [n] <- cl$silinfo$avg.width
+}
+
+plot(cluster1 , type = 'l',main = "Optimal number of clusters for 露畹新丛",
+     xlab = "Number of clusters",
+     ylab = "Silhouette index",
+     col = "red")
+
+
+cluster2 <- c()
+for (n in 1:10) {
+  cl <- clara(rgbImage2[, c("r.value", "g.value", "b.value")], n)
+  cluster2[n] <- cl$silinfo$avg.width
+}
+
+plot(cluster2, type = 'l', main = "Optimal number of clusters for 空谷幽芬",
+     xlab = "Number of cluster",
+     ylab = "Silhouette index",
+     col = "red")
+```
+
+### We can see that the optimal number of clusters in the first image is 2, and the optimal number of clusters in the second image is also 2. Although I use RGB three-color processing, the optimal number of clusters should be 3, but combined with China The characteristics of classical paintings, there are not many special colors in this period. It can also be seen from the two paintings that the largest proportion is only two colors, so here I decided that the optimal number of clusters is 2. And print out the clustered images.
+
+```{r}
+
+clara1 <- clara(rgbImage1[, c("r.value", "g.value", "b.value")], 2)
+
+colours1 <- rgb(clara1$medoids[clara1$clustering, ])
+plot(y ~ x, data=rgbImage1, main="露畹新丛(Fresh grass in the garden)",
+     col = colours1, 
+     asp = 1, pch = ".")
+
+
+
+clara2 <- clara(rgbImage2[, c("r.value", "g.value", "b.value")], 2)
+
+
+colours2 <- rgb(clara2$medoids[clara2$clustering, ])
+plot(y ~ x, data=rgbImage2, main="空谷幽芬(Fragrance in the empty valley)",
+     col = colours2, 
+     asp = 1, pch = ".")
+
+
+```
+
+
+
+
+```{r}
+dominantColours1 <- as.data.frame(table(colours1))
+max_col1  <- max(dominantColours1$Freq)/sum(dominantColours1$Freq)
+min_col1  <- min(dominantColours1$Freq)/sum(dominantColours1$Freq)
+dominantColours1$distribution <- round((c(min_col1, max_col1) * 100), 2)
+
+dominantColours1$colours <- as.character(dominantColours1$colours)
+pie(dominantColours1$Freq, labels = dominantColours1$distribution,
+        col = dominantColours1$colours,
+        xlab = "Colours",
+        ylab = "Frequency (%)",
+        main = "Ink percentage in 露畹新丛(Fresh grass in the garden)" )
+legend( "topleft",legend = c ("colour of ink","colour of paper"),fill = dominantColours1$colours)
+
+```
+```{r}
+dominantColours2 <- as.data.frame(table(colours2))
+max_col2  <- max(dominantColours2$Freq)/sum(dominantColours2$Freq)
+min_col2  <- min(dominantColours2$Freq)/sum(dominantColours2$Freq)
+dominantColours2$distribution <- round((c(min_col2, max_col2) * 100), 2)
+
+dominantColours2$colours <- as.character(dominantColours2$colours)
+pie(dominantColours2$Freq, labels = dominantColours2$distribution,
+        col = dominantColours2$colours,
+        xlab = "Colours",
+        ylab = "Frequency (%)",
+        main = "Ink percentage in 空谷幽芬(Fragrance in the empty valley)" )
+legend( "topleft",legend = c ("colour of ink","colour of paper"),fill = dominantColours2$colours)
+```
+
+## Conclusion
+
+### We can see from the figure that the proportion of ink in the two paintings is not much, one is 11.28%, and the other is 15.48%. But even with such a small amount of ink, it became a famous painting. Because some ancient Chinese paintings adopt the method of seeing the big from the small in the observation and understanding of objective things. Although the proportion of ink is not much, it is enough to reflect the beauty and vitality of the grass.
