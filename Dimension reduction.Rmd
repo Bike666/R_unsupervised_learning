@@ -1,0 +1,95 @@
+---
+title: "Dimensionality Reduction for Pizza Data from Pizza Hut"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+## Introduction
+### Pizza is a very common food. As one of the larger chain stores, pizza hut also has a lot in the Polish market, so I want to retain as much useful information as possible by reducing the dimensionality of the nutritional content of pizza. Data source is https://ocs-pl.oktawave.com/v1/AUTH_876e5729-f8dd-45dd-908f-35d8bb716177/amrest-web-ordering/GRD4/nutrition/Nutrition%20ALL%20CONCEPTS%20FINAL_W1.2019.pdf. The data has been preprocessed before processing the data, and some unimportant information has been deleted.
+
+## Dataframe
+
+### Some basic information of the dataframe
+
+```{r }
+library(corrplot)
+library(factoextra)
+library(dplyr)
+
+
+PizzaData <- read.csv("Nutrition pizza from pizza hut.csv")
+dim(PizzaData)
+head(PizzaData)
+summary(PizzaData) 
+```
+
+### Histogram for each column of data
+
+```{r }
+par(mfrow = c(2, 4))
+hist(PizzaData[,2],main = "Kcal")
+hist(PizzaData[,3],main = "fat")
+hist(PizzaData[,4],main = "saturated fatty acid")
+hist(PizzaData[,5],main = "carbohydrate")
+hist(PizzaData[,6],main = "sugar")
+hist(PizzaData[,7],main = "protein")
+hist(PizzaData[,8],main = "salt ")
+par(mfrow = c(1, 1))
+
+```
+### Correlation Matrix    
+
+```{r }
+PizzaData1 <- scale(PizzaData[,2:8],center=T,scale=F)  
+cor<-cor(PizzaData1,method="pearson") 
+corrplot(cor, type = "lower", order = "hclust", tl.col = "black", tl.cex = 0.6)
+```
+
+### On the matrix, we can see from the graph that calories are proportional to some other variables, and protein is also very correlated with other variables
+
+## Principal Component Analysis (PCA)
+
+### Optimal number of components      
+
+
+```{r }
+pca <- prcomp(PizzaData1, center=FALSE)
+summary(pca)
+```
+
+```{r }
+eig.val <- get_eigenvalue(pca)
+eig.val
+```
+
+
+```{r }
+fviz_eig(pca, choice='eigenvalue',linecolor = "red")
+fviz_eig(pca,linecolor = "red")
+```
+
+
+### Through two methods, we can see that the optimal component is one. One component can explain 95% of the data   
+
+
+```{r }
+fviz_pca_ind(pca, col.ind="cos2", geom = "point", gradient.cols = c("green", "yellow", "blue" ))
+fviz_pca_var(pca, col.var = "blue")
+```
+### The above figures show the relationship between the variable and other variables, the best variable is Kcal     
+```{r }
+PC1 <- fviz_contrib(pca, choice = "var", axes = 1)
+PC2 <- fviz_contrib(pca, choice = "var", axes = 2)
+plot(PC1)
+plot(PC2)
+```
+### The figure above shows that if it is one-dimensional data, Kcal is the best choice. For two-dimensional, carbohydrate and saturated fatty acid are the best choices   
+
+
+## Conclusions
+
+### Dimensionality reduction is very helpful for big data analysis. When resources and practices are limited, dimensionality reduction can screen out useful information to the greatest extent   
